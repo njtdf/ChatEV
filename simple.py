@@ -13,7 +13,6 @@ device = torch.device("cuda:0" if use_cuda and torch.cuda.is_available() else "c
 
 
 # input data
-device = "cuda:0"
 occ, dur, vol, prc, adj, col, dis, weather, inf = utils.read_data()
 zone = 42
 timestamp = 1024  # note: timestamp > 12
