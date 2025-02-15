@@ -12,12 +12,14 @@ pip install -r requirements.txt
 ```
 
 ### Meta-Llama hf_token
-To get access to Meta-Llama models, we need to apply a "hf_token" key through https://www.llama.com/llama-downloads/
+To get access to Meta-Llama models, we need to apply a "hf_token" key through https://huggingface.co/settings/tokens
 
-Replace input a correct "hf_token" in Line 99 of the "utils.py" file.
+Then replace input a correct "hf_token" in Line 99 of the "utils.py" file.
 ```shell
 hf_token = "Your_HF_TOKEN"
 ```
+
+ps: Or you can download a local model through https://www.llama.com/llama-downloads/
 
 ### Implementation
 To conduct a simple implementation (inference only), we can run the "simple.py" file.
