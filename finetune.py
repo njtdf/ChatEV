@@ -20,7 +20,7 @@ input_prompt = utils.prompting(zone, timestamp, inf, occ, prc, weather)
 target = utils.output_template(np.round(occ.iloc[timestamp+6, zone], decimals=4))
 print(input_prompt)
 
-model, tokenizer, config = utils.load_llm()  # load model and tokenizer
+model, tokenizer, config = utils.load_llm(peft=True)  # load model and tokenizer
 
 # create LLM input
 input_encoding = tokenizer([[input_prompt, target]], return_tensors='pt', max_length=1024, padding="max_length", truncation=True, return_token_type_ids=True)
