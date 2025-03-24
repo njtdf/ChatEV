@@ -234,7 +234,7 @@ class MInterface(pl.LightningModule):
         attn_implementation = "eager"  # eager, FlashAttention, ...
         cache_dir='/home/haohao/.huggingface'  # base model save_path
 
-        self.tokenizer = AutoTokenizer.from_pretrained(model_id, token=hf_token, cache_dir=cache_dir)
+        self.tokenizer = AutoTokenizer.from_pretrained(model_id, token=hf_token, cache_dir=cache_dir, padding_side='left')
         if self.tokenizer.pad_token_id is None:
             self.tokenizer.pad_token_id = self.tokenizer.eos_token_id
 
