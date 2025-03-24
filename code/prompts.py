@@ -1,6 +1,4 @@
-import pandas as pd
 import numpy as np
-import torch, os, argparse
 
 
 # zone profile
@@ -17,7 +15,7 @@ The zone covers an area of {area} square kilometres and has {cap} public charing
 
 
 # prompt template
-def prompting(data, index, seq_len, pre_len, inf):
+def prompting(data, index, seq_len, pre_len, inf, data_name):
     np.set_printoptions(linewidth=1000)  # number of printed elements in a row.
     
     # history
@@ -38,9 +36,9 @@ def prompting(data, index, seq_len, pre_len, inf):
         You are an expert in electric vehicle charging management, who is good at charging demand prediction. 
         The weather is {temperature} degrees Celsius with a humidity of {humidity}.
         Given the following time series of historical charging data,
-        Charging Occupancy for the Previous {seq_len} hours = {local_charge};
+        Charging {data_name.title()} for the Previous {seq_len} hours = {local_charge};
         Charging Price (current|future) = {local_prc} | {f_prc}.
-        Now, pay attention! Your task is to predict the charging occupancy in the area for the next {pre_len} hour by analyzing the given information and leveraging your common sense.
+        Now, pay attention! Your task is to predict the charging {data_name} in the area for the next {pre_len} hour by analyzing the given information and leveraging your common sense.
         In your answer, you should provide the value of your prediction in angle brackets, such as <value>.
     ### RESPONSE:
     """
@@ -48,11 +46,11 @@ def prompting(data, index, seq_len, pre_len, inf):
 
 
 # output template
-def output_template(data, future=6):
+def output_template(data, data_name, future=6):
     data = str(data)
     prepend = dict()
     prepend[0] = f'The predicted value for the next {future} hours is <{data}>.'
-    prepend[1] = f'The future charging occupancy for the next {future} hours is <{data}>.'
-    prepend[2] = f'I predict Charging Occupancy for the next {future} hours to be approximately <{data}>.'
+    prepend[1] = f'The future charging {data_name} for the next {future} hours is <{data}>.'
+    prepend[2] = f'I predict charging {data_name} for the next {future} hours to be approximately <{data}>.'
     idx = int(np.random.randint(0, len(prepend), 1))
     return prepend[idx]

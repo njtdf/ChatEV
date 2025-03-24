@@ -1,19 +1,10 @@
-import os, sys
 import lightning as L
 import pytorch_lightning as pl
-from argparse import ArgumentParser
-from pytorch_lightning import Trainer
 import pytorch_lightning.callbacks as plc
-from pytorch_lightning.strategies import DDPStrategy
-from pytorch_lightning.loggers import TensorBoardLogger, CSVLogger
-from lightning.pytorch.callbacks.early_stopping import EarlyStopping
 import parse
 import torch
-import pandas as pd
 from model_interface import MInterface
 from data_interface import MyDataModule
-from datasets import Dataset
-from torch.utils.data import DataLoader
 
 
 def load_callbacks(args):

@@ -1,23 +1,7 @@
 # base environments
-import os, torch, sys, random
-import pandas as pd
-import numpy as np
-import copy
-import time
-from torch import nn
-from torch.nn import functional as F
-import torch.optim.lr_scheduler as lrs
-import inspect
-import importlib
-import lightning as L
+import torch
 import pytorch_lightning as pl
-from pandas.core.frame import DataFrame
-import os.path as op
 from sklearn.metrics import mean_absolute_error
-from datasets import load_dataset, Dataset
-import pickle
-import json
-from tqdm import tqdm
 import re
 import warnings
 
@@ -243,7 +227,7 @@ class MInterface(pl.LightningModule):
     def load_llm(self):
         # Llama Config
         model_name = 'Llama-3.2-1B-Instruct'  # model
-        hf_token = "your_huggingface_token"
+        hf_token = "your_huggingface_token" # hf_token for Llama 3.1 or 3.2
         model_source = 'meta-llama/'
         model_id = model_source + model_name
         torch_dtype = torch.float16
