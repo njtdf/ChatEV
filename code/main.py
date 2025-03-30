@@ -3,6 +3,7 @@ import pytorch_lightning as pl
 import pytorch_lightning.callbacks as plc
 import parse
 import torch
+import random
 from model_interface import MInterface
 from data_interface import MyDataModule
 
@@ -44,15 +45,31 @@ def main(args):
         ckpt = torch.load(ckpt_path, map_location='cpu')
         model.load_state_dict(ckpt['state_dict'], strict=False)
         print("load checkpoints from {}".format(ckpt_path))
-
-    data_module = MyDataModule(args)  # data_name=args.data_name, zone=args.zone, batch_size=args.batch_size
-    trainer = pl.Trainer(devices=[int(args.cuda)], accelerator='cuda', max_epochs=args.max_epochs, logger=True, callbacks=callbacks)  # single device
     
     if args.test_only:
-        pass
+        data_module = MyDataModule(args)
+        trainer.test(model=model, datamodule=data_module)  # test
     else:
-        trainer.fit(model=model, datamodule=data_module)  # train and valid
-    trainer.test(model=model, datamodule=data_module)  # test
+        
+        # meta-learning (First-order Reptile): Learn shared knowledge from source zones and improve prediction performance in the target zone.
+        if args.meta_learning:  
+            random_zones = [random.randint(1, 200) for _ in range(args.inner_loop-1)]  # You can select the source zones based on specific rules
+            random_zones.append(args.zone)
+            for i in range(args.outer_loop):  # the meta-learning epochs
+                for j in range(args.inner_loop):  # the meta-learning zones
+                    print(f"We are now in the {i}/{args.outer_loop} outer epoch and the {j}/{args.inner_loop} zone.")
+                    args.zone = random_zones[j]
+                    data_module = MyDataModule(args)
+                    trainer = pl.Trainer(devices=[int(args.cuda)], accelerator='cuda', max_epochs=1, logger=True, callbacks=callbacks)  # each zone one epoch
+                    trainer.fit(model=model, datamodule=data_module)  # train and valid
+            trainer.test(model=model, datamodule=data_module)  # test  
+            
+        # normal learning          
+        else:
+            data_module = MyDataModule(args)
+            trainer = pl.Trainer(devices=[int(args.cuda)], accelerator='cuda', max_epochs=args.max_epochs, logger=True, callbacks=callbacks)  # single device: default: 0. If you wanna use multiple devices, you can edit the param "devices", such as devices=[0, 1]. 
+            trainer.fit(model=model, datamodule=data_module)  # train and valid
+            trainer.test(model=model, datamodule=data_module)  # test
 
 
 if __name__ == '__main__':

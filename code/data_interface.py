@@ -16,7 +16,7 @@ class MyDataModule(pl.LightningDataModule):
         zone = args.zone
         self.pre_len = args.pre_len  # predictive length
         self.seq_len = args.seq_len  # the window size of historical data
-        self.train_data, self.valid_data, self.test_data, self.inf = self.load_meta_data(self.data_name, zone)
+        self.train_data, self.valid_data, self.test_data, self.inf = self.load_meta_data(self.data_name, zone, args)
         
         
     def setup(self, stage):
@@ -41,7 +41,7 @@ class MyDataModule(pl.LightningDataModule):
         return data.DataLoader(self.test, batch_size=self.batch_size)
     
     
-    def load_meta_data(self, data_name, zone, train_ratio=0.8, valid_ratio=0.1):
+    def load_meta_data(self, data_name, zone, args, train_ratio=0.8, valid_ratio=0.1):
         # read meta data from excel files
         charge = pd.read_csv('../data/'+data_name+'.csv', index_col=0, header=0)  # charging data
         inf = pd.read_csv('../data/inf.csv', index_col=0, header=0)
@@ -80,7 +80,11 @@ class MyDataModule(pl.LightningDataModule):
             neighbor_prc = np.zeros_like(local_prc)
         
         # data division
-        train_data = np.vstack([local_charge[:train_step], local_prc[:train_step], neighbor_charge[:train_step], neighbor_prc[:train_step], weather['T'][:train_step], weather['U'][:train_step]]).transpose()
+        if args.few_shot:
+            few_step = int(data_len*args.few_shot_ratio)
+            train_data = np.vstack([local_charge[:few_step], local_prc[:few_step], neighbor_charge[:few_step], neighbor_prc[:few_step], weather['T'][:few_step], weather['U'][:few_step]]).transpose()
+        else:
+            train_data = np.vstack([local_charge[:train_step], local_prc[:train_step], neighbor_charge[:train_step], neighbor_prc[:train_step], weather['T'][:train_step], weather['U'][:train_step]]).transpose()
         train_data = pd.DataFrame(train_data, columns=['local_charge', 'local_prc', 'neighbor_charge', 'neighbor_prc', 'temperature', 'humidity'])
         valid_data = np.vstack([local_charge[train_step:valid_step], local_prc[train_step:valid_step], neighbor_charge[train_step:valid_step], neighbor_prc[train_step:valid_step], weather['T'][train_step:valid_step], weather['U'][train_step:valid_step]]).transpose()
         valid_data = pd.DataFrame(valid_data, columns=['local_charge', 'local_prc', 'neighbor_charge', 'neighbor_prc', 'temperature', 'humidity'])
@@ -88,7 +92,7 @@ class MyDataModule(pl.LightningDataModule):
         test_data = pd.DataFrame(test_data, columns=['local_charge', 'local_prc', 'neighbor_charge', 'neighbor_prc', 'temperature', 'humidity'])
 
         return train_data, valid_data, test_data, local_inf
-        
+
         
         
 class MyDataset(data.Dataset):

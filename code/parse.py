@@ -11,10 +11,10 @@ def parse_args():
     
     # --------------- general --------------------
     parser.add_argument('--cuda', type=str, default='0', help="the used cuda")
-    parser.add_argument('--seed', type=int, default=2024, help='random seed')
+    parser.add_argument('--seed', type=int, default=2025, help='random seed')
     parser.add_argument('--weight_decay', default=1e-5, type=float)
     
-    # learning
+    # hyper
     parser.add_argument('--lr', default=1e-3, type=float)
     parser.add_argument('--lr_scheduler', default='cosine', choices=['cosine'], type=str)
     parser.add_argument('--lr_decay_min_lr', default=1e-9, type=float)
@@ -31,10 +31,17 @@ def parse_args():
     parser.add_argument('--ckpt', default=False, action='store_true')
     parser.add_argument('--ckpt_name', default='last', type=str)
     
-    # --------------- prediction -----------------------------
-    parser.add_argument('--data_name', default='occupancy', type=str)    
+    # --------------- prediction ------------------------
+    parser.add_argument('--data_name', default='occupancy', type=str)
     parser.add_argument('--zone', default=42, type=int)  
     parser.add_argument('--pre_len', default=6, type=int)
     parser.add_argument('--seq_len', default=12, type=int)
+    
+    # --------------- learning -------------------------
+    parser.add_argument('--meta_learning', default=False, action='store_true')
+    parser.add_argument('--outer_loop', default=10, type=int)
+    parser.add_argument('--inner_loop', default=3, type=int)
+    parser.add_argument('--few_shot', default=False, action='store_true')
+    parser.add_argument('--few_shot_ratio', default=0.2, type=float, help="The first [0.05, 0.1, 0.15, 0.2] of the training data.")
     
     return parser.parse_args()

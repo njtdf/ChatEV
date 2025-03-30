@@ -44,19 +44,18 @@ class MInterface(pl.LightningModule):
         
     def forward(self, batch):
         input_pairs = [[prompt, answer] for prompt, answer in zip(batch['input'], batch['answer'])]
-        batch_size = len(input_pairs)
         input_encoding = self.tokenizer(input_pairs, return_tensors='pt', max_length=self.hparams.max_input_length, padding="max_length", truncation=True, return_token_type_ids=True)
         input_ids, attention_mask, token_type_ids = input_encoding.input_ids, input_encoding.attention_mask, input_encoding.token_type_ids
         input_embeds = self.model.get_input_embeddings()(input_ids.to(self.cuda))  # batch, max_length, dim
 
         # mask the input and pad tokens
         target_ids = input_ids.masked_fill(input_ids == self.tokenizer.pad_token_id, -100)
-        target_ids = target_ids.masked_fill(token_type_ids == 0, -100)
+        # target_ids = target_ids.masked_fill(token_type_ids == 0, -100)
 
         # device = input_embeds.device
         outputs = self.model(
                     inputs_embeds=input_embeds,
-                    attention_mask=attention_mask.to(self.cuda),
+                    attention_mask=attention_mask.to(self.cuda),  # casual mask: next-token prediction
                     return_dict=True,
                     labels=target_ids.to(self.cuda),
                     use_cache=False,
@@ -67,8 +66,7 @@ class MInterface(pl.LightningModule):
     
     
     def configure_loss(self, out, labels=None):
-        lm_loss = out
-        loss = lm_loss  # you can build your losses here
+        loss = out  # you can build your losses here
         return loss
     
     
