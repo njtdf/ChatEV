@@ -38,27 +38,32 @@ All code for a complete implementation of ChatEV (including finetuning, validati
 pip install argparse, lightning, scikit-learn
 ```
 
+**Please remember to change your path to the "code" folder.**
+```shell
+cd code
+```
+
 We can run the "main.py" file to fintune a Llama model for EV charging data prediction:
 ```shell
-cd code & python main.py
+python main.py
 ```
 
 ### 5. Alternative Configurations
 * If you wanna load a checkpoint for finetuning, you can do so:
 ```shell
-cd code & python main.py --ckpt --ckpt_name='last'
+python main.py --ckpt --ckpt_name='last'
 ```
 * If you wanna load a checkpoint for testing, you can do so:
 ```shell
-cd code & python main.py --ckpt --ckpt_name='last' --test_only
+python main.py --ckpt --ckpt_name='last' --test_only
 ```
 * Train the model in a few-shot scienario:
 ```shell
-cd code & python main.py --few_shot --few_shot_ratio=0.2
+python main.py --few_shot --few_shot_ratio=0.2
 ```
 * Train the model using a simple and effective meta-learning approach, First-Order Reptile:
 ```shell
-cd code & python main.py --meta_learning
+python main.py --meta_learning
 ```
 
 More configurations can be found in the "parse.py" file.
