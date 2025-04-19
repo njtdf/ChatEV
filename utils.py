@@ -64,7 +64,7 @@ def prompting(zone, timestamp, inf, data, prc, weather, length=12, future=6):
     occ = str(np.around(np.array(data.iloc[timestamp-length:timestamp, zone]), decimals=4))
     c_prc = str(np.around(prc.iloc[timestamp, zone], decimals=4))
     f_prc = str(np.around(prc.iloc[timestamp+future, zone], decimals=4))
-    temperature = str(weather['P'].iloc[timestamp])
+    temperature = str(weather['T'].iloc[timestamp])
     humidity = str(weather['U'].iloc[timestamp])
     template = f"""
     ### INPUT:
