@@ -42,7 +42,10 @@ pip install argparse, lightning, scikit-learn
 ```shell
 cd code
 ```
-
+**Also replace input a correct "hf_token" in Line 228 of the "model_interface.py" file**
+```shell
+hf_token = "Your_HF_TOKEN"
+```
 We can run the "main.py" file to fintune a Llama model for EV charging data prediction:
 ```shell
 python main.py
