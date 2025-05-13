@@ -3,7 +3,9 @@ import torch
 import pytorch_lightning as pl
 from sklearn.metrics import mean_absolute_error
 import re
+import copy
 import warnings
+import sys
 
 # personal packages
 from optims import LinearWarmupCosineLRScheduler
@@ -46,15 +48,16 @@ class MInterface(pl.LightningModule):
         input_pairs = [[prompt, answer] for prompt, answer in zip(batch['input'], batch['answer'])]
         input_encoding = self.tokenizer(input_pairs, return_tensors='pt', max_length=self.hparams.max_input_length, padding="max_length", truncation=True, return_token_type_ids=True)
         input_ids, attention_mask, token_type_ids = input_encoding.input_ids, input_encoding.attention_mask, input_encoding.token_type_ids
-        input_embeds = self.model.get_input_embeddings()(input_ids.to(self.cuda))  # batch, max_length, dim
-
-        # mask the input and pad tokens
-        target_ids = input_ids.masked_fill(input_ids == self.tokenizer.pad_token_id, -100)
-        # target_ids = target_ids.masked_fill(token_type_ids == 0, -100)
-
+        inputs_embeds = self.model.get_input_embeddings()(input_ids.to(self.cuda))  # batch, max_length, dim
+        
+        pad_token_id = self.tokenizer.pad_token_id
+        target_ids = self.shift_right(input_ids, pad_token_id)
+        target_ids = target_ids.masked_fill(input_ids == self.tokenizer.pad_token_id, -100)
+        target_ids = target_ids.masked_fill(token_type_ids == 0, -100)
+        
         # device = input_embeds.device
         outputs = self.model(
-                    inputs_embeds=input_embeds,
+                    input_ids=input_ids.to(self.cuda),  # option: inputs_embeds=inputs_embeds
                     attention_mask=attention_mask.to(self.cuda),  # casual mask: next-token prediction
                     return_dict=True,
                     labels=target_ids.to(self.cuda),
@@ -63,6 +66,13 @@ class MInterface(pl.LightningModule):
         lm_loss = outputs.loss
 
         return lm_loss
+
+
+    def shift_right(self, input_ids, pad_token_id):
+        target_ids = torch.zeros_like(input_ids)
+        target_ids[:, 1:] = input_ids[:, :-1]
+        target_ids[:, 0] = pad_token_id
+        return target_ids
     
     
     def configure_loss(self, out, labels=None):
@@ -71,7 +81,6 @@ class MInterface(pl.LightningModule):
     
     
     def training_step(self, batch, batch_idx):
-        torch.autograd.set_detect_anomaly(True)  # use to check the anomaly in gradient backward
         if self.scheduler:
             self.scheduler.step(self.trainer.global_step, self.current_epoch, self.trainer.max_steps)
         out = self(batch)
@@ -79,6 +88,13 @@ class MInterface(pl.LightningModule):
         self.log('loss', loss, on_step=True, on_epoch=True, prog_bar=True, batch_size=self.hparams.batch_size)
         self.log('lr', self.scheduler.optimizer.param_groups[0]['lr'], on_step=True, on_epoch=True, prog_bar=True, batch_size=self.hparams.batch_size)
         self.log('global_step_num', self.trainer.global_step, on_step=True, on_epoch=True, prog_bar=True, batch_size=self.hparams.batch_size)
+
+        # use to check the anomaly in gradient backward
+        torch.autograd.set_detect_anomaly(True)  
+        has_inf = torch.isinf(loss).any()
+        has_nan = torch.isinf(loss).any()
+        if has_inf or has_nan:
+            loss = None  # skip this step
         return loss
 
 
@@ -225,14 +241,14 @@ class MInterface(pl.LightningModule):
     def load_llm(self):
         # Llama Config
         model_name = 'Llama-3.2-1B-Instruct'  # model
-        hf_token = "your_huggingface_token" # hf_token for Llama 3.1 or 3.2
+        hf_token = "Your_HF_Token" # hf_token for Llama 3.1 or 3.2
         model_source = 'meta-llama/'
         model_id = model_source + model_name
         torch_dtype = torch.float16
         attn_implementation = "eager"  # eager, FlashAttention, ...
-        cache_dir='/home/haohao/.huggingface'  # base model save_path
+        cache_dir='../.huggingface'  # base model save_path
 
-        self.tokenizer = AutoTokenizer.from_pretrained(model_id, token=hf_token, cache_dir=cache_dir)
+        self.tokenizer = AutoTokenizer.from_pretrained(model_id, token=hf_token, cache_dir=cache_dir, padding_side="left")
         if self.tokenizer.pad_token_id is None:
             self.tokenizer.pad_token_id = self.tokenizer.eos_token_id
 

@@ -1,5 +1,5 @@
 import numpy as np
-
+import sys
 
 # zone profile
 def characterization(inf):
@@ -24,8 +24,8 @@ def prompting(data, index, seq_len, pre_len, inf, data_name):
     # current 
     local_prc = np.around(np.array(data['local_prc'][index+seq_len]), decimals=2)
     neighbor_prc = np.around(np.array(data['neighbor_prc'][index+seq_len]), decimals=2)
-    temperature = np.array(data['temperature'][index+seq_len])
-    humidity = np.array(data['humidity'][index+seq_len])
+    temperature = np.around(np.array(data['temperature'][index+seq_len]), decimals=2)
+    humidity = np.around(np.array(data['humidity'][index+seq_len]), decimals=2)
     # future
     f_prc = np.around(np.array(data['local_prc'][index+seq_len+pre_len]), decimals=2)
         
@@ -47,10 +47,11 @@ def prompting(data, index, seq_len, pre_len, inf, data_name):
 
 # output template
 def output_template(data, data_name, future=6):
-    data = str(data)
-    prepend = dict()
-    prepend[0] = f'The predicted value for the next {future} hours is <{data}>.'
-    prepend[1] = f'The future charging {data_name} for the next {future} hours is <{data}>.'
-    prepend[2] = f'I predict charging {data_name} for the next {future} hours to be approximately <{data}>.'
-    idx = int(np.random.randint(0, len(prepend), 1))
+    data = str(np.around(data, decimals=4))
+    prepend = {
+    0: f'The predicted value for the next {future} hours is <{data}>.',
+    1: f'The future charging {data_name} for the next {future} hours is <{data}>.',
+    2: f'I predict charging {data_name} for the next {future} hours to be approximately <{data}>.',
+    }
+    idx = int(np.random.randint(len(prepend), size=1))
     return prepend[idx]
