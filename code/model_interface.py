@@ -49,9 +49,12 @@ class MInterface(pl.LightningModule):
         input_encoding = self.tokenizer(input_pairs, return_tensors='pt', max_length=self.hparams.max_input_length, padding="max_length", truncation=True, return_token_type_ids=True)
         input_ids, attention_mask, token_type_ids = input_encoding.input_ids, input_encoding.attention_mask, input_encoding.token_type_ids
         inputs_embeds = self.model.get_input_embeddings()(input_ids.to(self.cuda))  # batch, max_length, dim
-        
+
+        # shift right
         pad_token_id = self.tokenizer.pad_token_id
         target_ids = self.shift_right(input_ids, pad_token_id)
+        
+        # skip input and pad tokens in loss calculation
         target_ids = target_ids.masked_fill(input_ids == self.tokenizer.pad_token_id, -100)
         target_ids = target_ids.masked_fill(token_type_ids == 0, -100)
         
