@@ -52,8 +52,8 @@ class MInterface(pl.LightningModule):
         
         pad_token_id = self.tokenizer.pad_token_id
         target_ids = self.shift_right(input_ids, pad_token_id)
-        target_ids = target_ids.masked_fill(input_ids == self.tokenizer.pad_token_id, -100)
-        target_ids = target_ids.masked_fill(token_type_ids == 0, -100)
+        # target_ids = target_ids.masked_fill(input_ids == self.tokenizer.pad_token_id, -100)
+        # target_ids = target_ids.masked_fill(token_type_ids == 0, -100)
         
         # device = input_embeds.device
         outputs = self.model(
