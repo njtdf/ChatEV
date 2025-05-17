@@ -49,33 +49,29 @@ class MInterface(pl.LightningModule):
         input_encoding = self.tokenizer(input_pairs, return_tensors='pt', max_length=self.hparams.max_input_length, padding="max_length", truncation=True, return_token_type_ids=True)
         input_ids, attention_mask, token_type_ids = input_encoding.input_ids, input_encoding.attention_mask, input_encoding.token_type_ids
         inputs_embeds = self.model.get_input_embeddings()(input_ids.to(self.cuda))  # batch, max_length, dim
-
-        # shift right
-        pad_token_id = self.tokenizer.pad_token_id
-        target_ids = self.shift_right(input_ids, pad_token_id)
         
-        # skip input and pad tokens in loss calculation
-        target_ids = target_ids.masked_fill(input_ids == self.tokenizer.pad_token_id, -100)
+        target_ids = copy.deepcopy(input_ids)
+        target_ids = target_ids.masked_fill(target_ids == self.tokenizer.pad_token_id, -100)
         target_ids = target_ids.masked_fill(token_type_ids == 0, -100)
         
-        # device = input_embeds.device
         outputs = self.model(
                     input_ids=input_ids.to(self.cuda),  # option: inputs_embeds=inputs_embeds
-                    attention_mask=attention_mask.to(self.cuda),  # casual mask: next-token prediction
-                    return_dict=True,
-                    labels=target_ids.to(self.cuda),
-                    use_cache=False,
+                    attention_mask=attention_mask.to(self.cuda),
+                    labels=target_ids.to(self.cuda),  # next-token prediction
                 )
         lm_loss = outputs.loss
-
+        
+        if self.has_nan_or_inf(lm_loss):
+            print("!!!!")
+            sys.exit()
+        
         return lm_loss
-
-
-    def shift_right(self, input_ids, pad_token_id):
-        target_ids = torch.zeros_like(input_ids)
-        target_ids[:, 1:] = input_ids[:, :-1]
-        target_ids[:, 0] = pad_token_id
-        return target_ids
+    
+    
+    def has_nan_or_inf(self, tensor):
+        has_nan = torch.isnan(tensor)
+        has_inf = torch.isinf(tensor)
+        return (has_nan | has_inf).any().item()
     
     
     def configure_loss(self, out, labels=None):
@@ -86,18 +82,12 @@ class MInterface(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         if self.scheduler:
             self.scheduler.step(self.trainer.global_step, self.current_epoch, self.trainer.max_steps)
+            
         out = self(batch)
         loss = self.configure_loss(out)
         self.log('loss', loss, on_step=True, on_epoch=True, prog_bar=True, batch_size=self.hparams.batch_size)
         self.log('lr', self.scheduler.optimizer.param_groups[0]['lr'], on_step=True, on_epoch=True, prog_bar=True, batch_size=self.hparams.batch_size)
         self.log('global_step_num', self.trainer.global_step, on_step=True, on_epoch=True, prog_bar=True, batch_size=self.hparams.batch_size)
-
-        # use to check the anomaly in gradient backward
-        torch.autograd.set_detect_anomaly(True)  
-        has_inf = torch.isinf(loss).any()
-        has_nan = torch.isinf(loss).any()
-        if has_inf or has_nan:
-            loss = None  # skip this step
         return loss
 
 
@@ -216,7 +206,7 @@ class MInterface(pl.LightningModule):
             weight_decay = self.hparams.weight_decay
         else:
             weight_decay = 0
-        optimizer = torch.optim.Adam([
+        optimizer = torch.optim.AdamW([
             {'params': self.model.parameters(), 'lr': self.hparams.lr, 'weight_decay':weight_decay},
         ])
 
@@ -244,12 +234,12 @@ class MInterface(pl.LightningModule):
     def load_llm(self):
         # Llama Config
         model_name = 'Llama-3.2-1B-Instruct'  # model
-        hf_token = "Your_HF_Token" # hf_token for Llama 3.1 or 3.2
+        hf_token = "your_huggingface_token" # hf_token for Llama 3.1 or 3.2
         model_source = 'meta-llama/'
         model_id = model_source + model_name
         torch_dtype = torch.float16
         attn_implementation = "eager"  # eager, FlashAttention, ...
-        cache_dir='../.huggingface'  # base model save_path
+        cache_dir='/home/haohao/.huggingface'  # base model save_path
 
         self.tokenizer = AutoTokenizer.from_pretrained(model_id, token=hf_token, cache_dir=cache_dir, padding_side="left")
         if self.tokenizer.pad_token_id is None:
